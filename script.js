@@ -1,23 +1,25 @@
-// Elementele din DOM
-let hrs = document.getElementById("hrs");
-let min = document.getElementById("min");
-let sec = document.getElementById("sec");
-let day = document.getElementById("day");
-let date = document.getElementById("date");
+// DOM Elements
+const hrs = document.getElementById("hrs");
+const min = document.getElementById("min");
+const sec = document.getElementById("sec");
+const day = document.getElementById("day");
+const date = document.getElementById("date");
 const newsList = document.getElementById("news-list");
 const clearNewsBtn = document.getElementById("clear-news");
 
-// Cheia API (înlocuiește cu cheia ta)
+// API Key (replace with your own key)
 const apiKey = '1ab000de5f184b17b3c33b028d9e62be';
 
-// Actualizează ora și data
-setInterval(() => {
+// Update time and date every second
+function updateTimeAndDate() {
     const currentTime = new Date();
 
-    hrs.innerHTML = (currentTime.getHours() < 10 ? "0" : "") + currentTime.getHours();
-    min.innerHTML = (currentTime.getMinutes() < 10 ? "0" : "") + currentTime.getMinutes();
-    sec.innerHTML = (currentTime.getSeconds() < 10 ? "0" : "") + currentTime.getSeconds();
+    // Update time
+    hrs.innerHTML = currentTime.getHours().toString().padStart(2, '0');
+    min.innerHTML = currentTime.getMinutes().toString().padStart(2, '0');
+    sec.innerHTML = currentTime.getSeconds().toString().padStart(2, '0');
 
+    // Update day and date
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const months = [
         "January", "February", "March", "April", "May", "June",
@@ -25,51 +27,69 @@ setInterval(() => {
     ];
 
     day.innerHTML = days[currentTime.getDay()];
-    date.innerHTML = currentTime.getDate() + " " + months[currentTime.getMonth()] + " " + currentTime.getFullYear();
-}, 1000);
+    date.innerHTML = `${currentTime.getDate()} ${months[currentTime.getMonth()]} ${currentTime.getFullYear()}`;
+}
 
-// Fetch știri globale (Hot News)
+// Function to fetch global news
 async function fetchGlobalNews() {
     try {
-        // Solicită știri globale
-        const response = await fetch(`https://newsapi.org/v2/top-headlines?language=en&apiKey=${apiKey}`);
+        const url = `https://newsapi.org/v2/top-headlines?language=en&apiKey=${apiKey}`;
+        const response = await fetch(url);
+
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            if (response.status === 426) {
+                throw new Error("API requires an upgrade. Check API documentation.");
+            } else if (response.status === 401) {
+                throw new Error("Invalid API key. Please verify your API key.");
+            } else {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
         }
 
         const data = await response.json();
-        console.log('Răspuns API:', data); // Log pentru debugging
+        console.log('API Response:', data); // Debug log
         displayNews(data.articles);
     } catch (error) {
-        console.error('Eroare la preluarea știrilor:', error);
-        newsList.innerHTML = `<li>Eroare la preluarea știrilor. Încearcă din nou mai târziu.</li>`;
+        console.error('Error fetching news:', error);
+        newsList.innerHTML = `<li>${error.message || "Unable to fetch news. Please try again later."}</li>`;
     }
 }
 
-// Afișează știrile în HTML
+// Function to display news in the DOM
 function displayNews(articles) {
-    newsList.innerHTML = ''; // Golește lista de știri
+    newsList.innerHTML = ''; // Clear previous news
 
-    if (articles.length === 0) {
-        newsList.innerHTML = `<li>Nu s-au găsit știri.</li>`;
+    if (!articles || articles.length === 0) {
+        newsList.innerHTML = `<li>No news articles found.</li>`;
         return;
     }
 
+    // Add each article to the list
     articles.forEach(article => {
         const listItem = document.createElement('li');
         const link = document.createElement('a');
         link.href = article.url;
         link.target = '_blank';
         link.textContent = article.title;
+
         listItem.appendChild(link);
         newsList.appendChild(listItem);
     });
 }
 
-// Golire manuală a știrilor
+// Event listener for clearing news
 clearNewsBtn.addEventListener('click', () => {
-    newsList.innerHTML = ''; // Golește lista manual
+    newsList.innerHTML = ''; // Clear the news list manually
 });
 
-// Apelează funcția pentru a prelua și afișa știrile
-fetchGlobalNews();
+// Initialize application
+function initApp() {
+    // Start updating time and date
+    setInterval(updateTimeAndDate, 1000);
+
+    // Fetch news on load
+    fetchGlobalNews();
+}
+
+// Start the app
+initApp();
